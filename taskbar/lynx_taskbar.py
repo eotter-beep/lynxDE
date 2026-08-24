@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
-"""Lynx taskbar for Hyprland: a layer-shell top bar driven by the Hyprland IPC sockets."""
+"""Lynx taskbar: the layer-shell top bar of lynxde, a Hyprland-based desktop.
+
+Driven by the Hyprland IPC sockets.
+"""
 
 from __future__ import annotations
 

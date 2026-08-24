@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
-"""Lynx titles for Hyprland: draws custom title bars over every window, pure PySide6."""
+"""Lynx titles: custom title bars over every window in lynxde, a Hyprland-based desktop.
+
+Pure PySide6.
+"""
 
 from __future__ import annotations
 
