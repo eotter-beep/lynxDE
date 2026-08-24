@@ -2,10 +2,10 @@
 
 A Hyprland-based desktop environment for Arch Linux.
 
-lynxde turns a plain Hyprland session into a full desktop: a layer-shell
-taskbar, per-window custom title bars, a wallpaper manager, and a settings
-app — all written in pure Python on top of Qt 6 (PySide6). The installer
-installs Hyprland itself if it is missing.
+lynxde ships a layer-shell taskbar, per-window custom title bars, a
+wallpaper manager, and a settings app — all written in pure Python on
+top of Qt 6 (PySide6). Hyprland is its compositor, and the installer
+installs it if missing.
 
 ## Components
 
