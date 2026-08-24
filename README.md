@@ -1,11 +1,41 @@
+<div align="center">
+
+<img src="docs/banner.png" alt="lynxde" width="720"/>
+
 # lynxde
 
-A Hyprland-based desktop environment for Arch Linux.
+**A heavily-tested, stable desktop you will love.**
 
-lynxde ships a layer-shell taskbar, per-window custom title bars, a
-wallpaper manager, and a settings app — all written in pure Python on
-top of Qt 6 (PySide6). Hyprland is its compositor, and the installer
-installs it if missing.
+[![License](https://img.shields.io/badge/license-MIT-cba6f7?style=flat-square&labelColor=181825)](LICENSE)
+[![Stars](https://img.shields.io/github/stars/eotter-beep/lynxDE?style=flat-square&color=cba6f7&labelColor=181825)](https://github.com/eotter-beep/lynxDE/stargazers)
+[![Last commit](https://img.shields.io/github/last-commit/eotter-beep/lynxDE/main?style=flat-square&color=a6e3a1&labelColor=181825)](https://github.com/eotter-beep/lynxDE/commits/main)
+[![Compositor](https://img.shields.io/badge/Hyprland-based-cba6f7?style=flat-square&labelColor=181825)](https://hyprland.org)
+[![Built with](https://img.shields.io/badge/pure_Python-PySide6_6-41cd52?style=flat-square&labelColor=181825)](https://doc.qt.io/qtforpython/)
+[![Platform](https://img.shields.io/badge/platform-Arch_Linux-1793d1?style=flat-square&labelColor=181825)](https://archlinux.org)
+
+A complete desktop environment on Hyprland: a layer-shell taskbar,
+per-window custom title bars, live video wallpaper, a command palette
+with a built-in package store, and a settings app that restyles the
+whole session instantly — all pure Python on Qt 6 (PySide6).
+Hyprland is its compositor, and the installer installs it if missing.
+
+| Settings | Lynx Store | Launcher |
+|---|---|---|
+| <img src="docs/screenshots/settings.png" width="270"/> | <img src="docs/screenshots/store.png" width="270"/> | <img src="docs/screenshots/launcher.png" width="270"/> |
+
+## Install
+
+```sh
+git clone https://github.com/eotter-beep/lynxDE.git
+cd lynxDE
+./install.sh
+```
+
+The installer handles everything — including Hyprland itself if it is
+missing — then drops you into a running session immediately if you are
+already logged in.
+
+</div>
 
 ## Components
 
