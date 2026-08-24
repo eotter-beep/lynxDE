@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="docs/banner.png" alt="lynxde" width="720"/>
+<img src="docs/banner.png?v=2" alt="lynxde" width="720"/>
 
 # lynxde
 
