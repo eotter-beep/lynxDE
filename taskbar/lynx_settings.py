@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import json
 import os
+import shlex
 import sys
 
 from PySide6.QtCore import QRectF, Qt, QTimer
@@ -49,11 +50,13 @@ from hypr_common import (  # noqa: E402
     apply_hypr_keywords,
     apply_scheme_colors,
     build_style,
+    current_version,
     get_bar_side,
     get_scheme,
     get_wall_path,
     load_settings,
     save_settings,
+    terminal_prefix,
 )
 from lynx_blur import LynxBlur  # noqa: E402
 
@@ -874,6 +877,37 @@ class SettingsWindow(QWidget):
         self.autostart_edit.textChanged.connect(self._autostart_safe_start)
         pg.add(self.autostart_edit)
 
+        cap_upd = pg.cap("Updates")
+        upd_roww = QWidget()
+        upd_roww.keywords = "update upgrade version check now"
+        ul = QHBoxLayout(upd_roww)
+        ul.setContentsMargins(0, 0, 0, 0)
+        ul.setSpacing(8)
+        now_b = QPushButton("Check for updates now")
+        now_b.setCursor(Qt.CursorShape.PointingHandCursor)
+        now_b.clicked.connect(lambda: self.spawn_tool(
+            "lynx-update", ["--now"],
+            "Update check running — see ~/.cache/lynxde/update.log"))
+        open_log = QPushButton("Open update log")
+        open_log.setCursor(Qt.CursorShape.PointingHandCursor)
+        open_log.clicked.connect(self.open_update_log)
+        ver_l = QLabel(current_version()[:10] or "unknown",
+                       objectName="hint")
+        ver_l.keywords = "version installed"
+        ul.addWidget(now_b)
+        ul.addWidget(open_log)
+        ul.addStretch(1)
+        ul.addWidget(QLabel("Installed:", objectName="hint"))
+        ul.addWidget(ver_l)
+        pg.add(upd_roww)
+        self.make_toggle(pg, "Check for updates automatically",
+                         "Downloads to Documents/lynxde/updates and runs "
+                         "install.sh when a new version is available",
+                         "auto_update", True,
+                         "Auto-update preference saved.",
+                         keywords="update automatic upgrade download install",
+                         cap=cap_upd)
+
     def _autostart_safe_start(self):
         self._autostart_timer.start()
 
@@ -889,6 +923,24 @@ class SettingsWindow(QWidget):
                  if ln.strip() and not ln.strip().startswith("#")]
         self.set_values({"autostart": lines})
         self.status.setText(f"Saved {len(lines)} autostart command(s).")
+
+    def open_update_log(self):
+        import subprocess as sp
+
+        log_path = os.path.expanduser("~/.cache/lynxde/update.log")
+        if not os.path.isfile(log_path):
+            os.makedirs(os.path.dirname(log_path), exist_ok=True)
+            open(log_path, "w").close()
+        prefix = terminal_prefix()
+        if prefix:
+            sp.Popen([*prefix, "sh", "-c",
+                      f"tail -n 80 {shlex.quote(log_path)}; "
+                      "'echo; read -n 1 -s -r -p \"Close \"'"],
+                     stdout=sp.DEVNULL, stderr=sp.DEVNULL,
+                     stdin=sp.DEVNULL, start_new_session=True)
+            self.status.setText("Update log opened in your terminal.")
+        else:
+            self.status.setText(f"Update log: {log_path}")
 
     def spawn_tool(self, name: str, args: list[str], flash: str):
         import subprocess as sp

@@ -95,6 +95,14 @@ def run_daemon() -> int:
     from lynx_blur import publish_backdrop  # noqa: E402
     from lynx_widgets import DesktopCanvas  # noqa: E402
 
+    # Video decode is our lowest-value workload: yield the CPU to the
+    # taskbar, widgets and compositor so a HQ mp4 can never make input
+    # feel sluggish.
+    try:
+        os.nice(5)
+    except OSError:
+        pass
+
     layer_ok = maybe_enable_layer_shell()
     argv = list(sys.argv) + ["run"]
     if layer_ok:
@@ -122,7 +130,10 @@ def run_daemon() -> int:
             self.player = None
             self.audio = None
             self.sink = None
+            self._latest = None
             self._frame = None
+            self._sc = None
+            self._sc_key = None
             self.dim = 0
             self.setWindowFlags(self.windowFlags()
                                 | Qt.WindowType.FramelessWindowHint
@@ -167,7 +178,19 @@ def run_daemon() -> int:
             self.player.setAudioOutput(self.audio)
             self.sink = QVideoSink(self)
             self.player.setVideoSink(self.sink)
+            # Frames arrive at the decoder's rate (60 fps for HQ mp4).
+            # Converting every one of them to a QImage on the GUI thread
+            # starves input handling for our widgets, so we only keep the
+            # newest frame and convert at most ~30 per second.
+            self._latest = None
+            self._frame = None
+            self._sc = None
+            self._sc_key = None
             self.sink.videoFrameChanged.connect(self._on_frame)
+            self._conv = QTimer(self)
+            self._conv.setInterval(33)
+            self._conv.timeout.connect(self._convert_frame)
+            self._conv.start()
             self.player.mediaStatusChanged.connect(self._on_status)
             path = self.pending_path or self.get_path()
             if path:
@@ -175,9 +198,20 @@ def run_daemon() -> int:
 
         def _on_frame(self, frame):
             if frame.isValid():
-                self._frame = frame.toImage()
-                pub_state["dirty"] = True   # stream it to lynxBlur consumers
-                self.update()
+                self._latest = frame   # drop intermediates, keep freshest
+
+        def _convert_frame(self):
+            frame = self._latest
+            if frame is None:
+                return
+            self._latest = None
+            img = frame.toImage()
+            if img.isNull():
+                return
+            self._frame = img
+            self._sc_key = None        # re-derive cover cache lazily
+            pub_state["dirty"] = True  # stream it to lynxBlur consumers
+            self.update()
 
         def _on_status(self, status):
             from PySide6.QtMultimedia import QMediaPlayer
@@ -186,21 +220,39 @@ def run_daemon() -> int:
                 self.player.setPosition(0)
                 self.player.play()
 
+        def _scaled_frame(self):
+            """Cover-fit cache: one cheap rescale per size change instead of
+            a smooth transform on every paint."""
+            from PySide6.QtCore import Qt
+
+            key = (self.width(), self.height())
+            if self._sc_key == key or self._frame is None:
+                return self._sc
+            img = self._frame
+            iw, ih = img.width(), img.height()
+            if iw < 1 or ih < 1:
+                return None
+            scale = max(key[0] / iw, key[1] / ih)
+            self._sc = img.scaled(
+                max(1, round(iw * scale)), max(1, round(ih * scale)),
+                Qt.AspectRatioMode.IgnoreAspectRatio,
+                Qt.TransformationMode.FastTransformation)
+            self._sc_key = key
+            return self._sc
+
         def paintEvent(self, ev):
             from PySide6.QtCore import QRectF
             from PySide6.QtGui import QColor, QPainter
 
             p = QPainter(self)
             p.fillRect(self.rect(), QColor("#111119"))
-            img = self._frame
+            img = self._scaled_frame()
             if img is None or img.isNull():
                 return
             w, h = self.width(), self.height()
-            iw, ih = img.width(), img.height()
-            scale = max(w / iw, h / ih)
-            p.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
-            p.drawImage(QRectF((w - iw * scale) / 2.0, (h - ih * scale) / 2.0,
-                               iw * scale, ih * scale), img)
+            p.drawImage(QRectF((w - img.width()) / 2.0,
+                               (h - img.height()) / 2.0,
+                               img.width(), img.height()), img)
             dim = int(getattr(self, "dim", 0) or 0)
             if dim > 0:
                 p.fillRect(self.rect(), QColor(0, 0, 0, round(dim * 2.55)))
@@ -222,12 +274,18 @@ def run_daemon() -> int:
 
         def stop_video(self):
             self.pending_path = ""
+            self._latest = None
             self._frame = None
+            self._sc = None
+            self._sc_key = None
             if self.player is not None:
                 self.player.stop()
             self.update()
 
         def close(self):
+            conv = getattr(self, "_conv", None)
+            if conv is not None:
+                conv.stop()
             if self.player is not None:
                 self.player.stop()
             QWidget.close(self)
@@ -321,8 +379,14 @@ def run_daemon() -> int:
         now = time.monotonic()
         if pub_state["dirty"] or now - last_pub[0] >= 1.0:
             pub_state["dirty"] = False
-            if publish_tick():
+            t0 = time.monotonic()
+            ok = publish_tick()
+            dur = time.monotonic() - t0
+            if ok:
                 last_pub[0] = now
+            # Adaptive cadence: a publish that costs real CPU time backs
+            # the blur stream off toward ~12 fps; cheap ones stay at 25.
+            _pump.setInterval(120 if dur > 0.02 else 40)
 
     _pump = QTimer(app)
     _pump.setInterval(40)          # drain window: caps re-publish at ~25 fps

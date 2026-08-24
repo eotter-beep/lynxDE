@@ -19,6 +19,7 @@ installs it if missing.
 | `lynx-welcome`    | First-run welcome screen with keybinds + startup sound |
 | `lynx-autostart`  | Runs your user-defined autostart commands at login   |
 | `lynx-store`      | Package manager app: browse/install/remove pacman packages (also in the palette) |
+| `lynx-update`     | Auto-updater: checks GitHub, downloads to Documents/lynxde/updates, runs install.sh |
 
 ## Requirements
 
@@ -96,11 +97,34 @@ Windows & effects, Keyboard & mouse, Startup:
   re-applies every Lynx tweak on the clean slate
 - **Keyboard & mouse** — click-to-focus vs focus-follows-mouse modes,
   natural scrolling, NumLock at startup, cursor size
-- **Startup** — welcome-screen controls, startup chime toggle, and a
-  one-command-per-line autostart editor executed by `lynx-autostart`
+- **Startup** — welcome-screen controls, startup chime toggle, a
+  one-command-per-line autostart editor executed by `lynx-autostart`,
+  and auto-update controls (toggle, check-now button, installed version)
 
 All of it persists to `~/.config/lynxde/settings.json` and applies live
 to the running desktop within a second.
+
+## Auto-updates
+
+`lynx-update` keeps lynxde current on its own. About three minutes after
+login (and then once every 24 h) it compares the recorded installed
+version against the latest commit of this repository. On a new version
+it:
+
+1. downloads the zipball to `~/Documents/lynxde/updates/lynxde-main.zip`
+2. extracts it there and runs its `install.sh`
+3. records the new version, notifies you, and the installer restarts
+   every running component — so updates apply live, no re-login needed
+
+Disable it under Settings → Startup ("Check for updates automatically"),
+or drive it by hand:
+
+```sh
+lynx-update --now      # check + install immediately
+lynx-update --status   # show version, settings and recent activity
+```
+
+Activity is logged to `~/.cache/lynxde/update.log`.
 
 ## Configuration
 

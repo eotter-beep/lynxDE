@@ -76,6 +76,7 @@ DEFAULT_SCHEME = "lynx"
 SETTINGS_DIR = os.path.join(
     os.environ.get("XDG_CONFIG_HOME") or os.path.expanduser("~/.config"), "lynxde")
 SETTINGS_PATH = os.path.join(SETTINGS_DIR, "settings.json")
+VERSION_PATH = os.path.join(SETTINGS_DIR, "version")
 
 VIDEO_EXTS = {".mp4", ".gif", ".mkv", ".webm", ".mov", ".avi", ".apng"}
 ASSETS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets")
@@ -110,6 +111,15 @@ def save_settings(settings: dict):
     with open(tmp, "w") as f:
         json.dump(settings, f, indent=2)
     os.replace(tmp, SETTINGS_PATH)
+
+
+def current_version() -> str:
+    """Installed lynxde version (git sha) as recorded by the installer/updater."""
+    try:
+        with open(VERSION_PATH) as f:
+            return f.read().strip()
+    except OSError:
+        return ""
 
 
 def get_scheme(name: str | None = None) -> dict:

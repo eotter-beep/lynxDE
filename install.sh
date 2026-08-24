@@ -319,7 +319,7 @@ install_files() {
     echo "installed: $SHARE_DIR/assets"
   fi
   for base in lynx-taskbar lynx-titles lynx-settings lynx-wallpaper \
-    lynx-launcher lynx-welcome lynx-autostart lynx-store; do
+    lynx-launcher lynx-welcome lynx-autostart lynx-store lynx-update; do
     bin="$HOME/.local/bin/$base"
     cat > "$bin" <<WRAPPER
 #!/usr/bin/env bash
@@ -347,6 +347,19 @@ Keywords=store;package;pacman;install;remove;software;
 StartupWMClass=lynx-store
 EOF
   echo "installed: $app_dir/lynx-store.desktop"
+}
+
+record_version() {
+  # Record the installed git revision so lynx-update can detect upgrades.
+  local sha=""
+  if command -v curl >/dev/null 2>&1; then
+    sha="$(curl -sfL --max-time 8 \
+      "https://api.github.com/repos/eotter-beep/lynxDE/commits/main" 2>/dev/null \
+      | grep -o '"sha": *"[0-9a-f]\{40\}"' | head -1 | grep -o '[0-9a-f]\{40\}')"
+  fi
+  mkdir -p "$HOME/.config/lynxde"
+  printf '%s\n' "${sha:-dev}" > "$HOME/.config/lynxde/version"
+  echo "version: ${sha:-dev}"
 }
 
 detect_conf() {
@@ -379,6 +392,8 @@ hl.on("hyprland.start", function ()
     hl.exec_cmd(os.getenv("HOME") .. "/.local/bin/lynx-launcher --autostart")
     hl.exec_cmd(os.getenv("HOME") .. "/.local/bin/lynx-welcome")
     hl.exec_cmd(os.getenv("HOME") .. "/.local/bin/lynx-autostart")
+    hl.exec_cmd("sh -c 'sleep 180; " ..
+        os.getenv("HOME") .. "/.local/bin/lynx-update'")
 end)
 
 hl.bind("SUPER + X", hl.dsp.window.close())
@@ -420,6 +435,7 @@ exec-once = \$HOME/.local/bin/lynx-wallpaper
 exec-once = \$HOME/.local/bin/lynx-launcher --autostart
 exec-once = \$HOME/.local/bin/lynx-welcome
 exec-once = \$HOME/.local/bin/lynx-autostart
+exec-once = sh -c 'sleep 180; \$HOME/.local/bin/lynx-update'
 bind = SUPER, X, closewindow
 bind = SUPER, O, exec, \$HOME/.local/bin/lynx-settings
 bind = SUPER, slash, exec, \$HOME/.local/bin/lynx-launcher
@@ -480,7 +496,7 @@ apply_conf() {
 }
 
 components_running() {
-  pgrep -f "lynx_taskbar.py|lynx_titles.py|lynx_wallpaper.py|lynx_launcher.py|lynx_welcome.py|lynx_autostart.py" >/dev/null 2>&1
+  pgrep -f "lynx_taskbar.py|lynx_titles.py|lynx_wallpaper.py|lynx_launcher.py|lynx_welcome.py|lynx_autostart.py|lynx_updater.py" >/dev/null 2>&1
 }
 
 stop_components() {
@@ -490,6 +506,7 @@ stop_components() {
   pkill -f "lynx_launcher.py" 2>/dev/null || true
   pkill -f "lynx_welcome.py" 2>/dev/null || true
   pkill -f "lynx_autostart.py" 2>/dev/null || true
+  pkill -f "lynx_updater.py" 2>/dev/null || true
 }
 
 start_components() {
@@ -509,6 +526,9 @@ start_components() {
     # mirror what exec-once would have done at login
     ( setsid "$HOME/.local/bin/lynx-autostart" >>"$LOG_FILE" 2>&1 & )
   fi
+  if [ -x "$HOME/.local/bin/lynx-update" ]; then
+    ( setsid env LYNX_UPDATE_DELAY=180 "$HOME/.local/bin/lynx-update" >>"$LOG_FILE" 2>&1 & )
+  fi
   echo "started (log: $LOG_FILE)"
 }
 
@@ -518,6 +538,7 @@ uninstall() {
     "$HOME/.local/bin/lynx-settings" "$HOME/.local/bin/lynx-wallpaper" \
     "$HOME/.local/bin/lynx-launcher" "$HOME/.local/bin/lynx-welcome" \
     "$HOME/.local/bin/lynx-autostart" "$HOME/.local/bin/lynx-store" \
+    "$HOME/.local/bin/lynx-update" \
     "${XDG_DATA_HOME:-$HOME/.local/share}/applications/lynx-store.desktop" \
     "$SESSION_WAYLAND_BIN" "$SESSION_X11_BIN" "$STUB_CONF"
   local f d
@@ -576,6 +597,7 @@ write_stub_conf
 install_session_entries
 detect_conf
 apply_conf
+record_version
 start_components
 
 case ":$PATH:" in
