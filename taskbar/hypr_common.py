@@ -356,6 +356,39 @@ QPushButton::menu-indicator {{
     image: none;
     width: 0px;
 }}
+QSlider {{
+    background: transparent;
+}}
+QSlider::groove:horizontal {{
+    height: 6px;
+    border-radius: 3px;
+    background: {s['surface_hi']};
+}}
+QSlider::sub-page:horizontal {{
+    height: 6px;
+    border-radius: 3px;
+    background: {s['accent']};
+}}
+QSlider::add-page:horizontal {{
+    height: 6px;
+    border-radius: 3px;
+    background: {s['surface_hi']};
+}}
+QSlider::handle:horizontal {{
+    width: 14px;
+    height: 14px;
+    margin: -5px 0;
+    border-radius: 7px;
+    background: {s['text']};
+}}
+QSlider::handle:horizontal:hover {{
+    background: {s['accent']};
+}}
+#volPct {{
+    color: {s['text']};
+    font-weight: 700;
+    font-size: 13px;
+}}
 #brand {{
     color: {s['accent']};
     font-weight: 800;

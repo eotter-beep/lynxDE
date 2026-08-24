@@ -8,7 +8,11 @@ from __future__ import annotations
 
 import datetime
 import os
+import re
+import shutil
+import subprocess
 import sys
+import time
 
 from PySide6.QtCore import QSize, QLockFile, QRectF, Qt, QTimer
 from PySide6.QtGui import QColor, QFont, QGuiApplication, QIcon, QPainter
@@ -21,6 +25,7 @@ from PySide6.QtWidgets import (
     QPushButton,
     QScrollArea,
     QSizePolicy,
+    QSlider,
     QVBoxLayout,
     QWidget,
 )
@@ -45,6 +50,7 @@ from hypr_common import (  # noqa: E402
     get_scheme,
     maybe_enable_layer_shell,
     set_layershell_anchor_side,
+    svg_pixmap,
 )
 from lynx_blur import lynxBlur  # noqa: E402
 
@@ -83,6 +89,33 @@ def make_sep() -> QFrame:
     sep.setObjectName("sep")
     sep.setFrameShape(QFrame.Shape.VLine)
     return sep
+
+
+def _run_out(cmd: list[str]) -> str:
+    try:
+        r = subprocess.run(cmd, capture_output=True, text=True, timeout=1.5)
+    except (OSError, subprocess.SubprocessError):
+        return ""
+    return r.stdout or ""
+
+
+def audio_state() -> tuple[int, bool]:
+    """(volume %, muted) of the default sink via wpctl (pactl fallback)."""
+    out = _run_out(["wpctl", "get-volume", "@DEFAULT_AUDIO_SINK@"])
+    m = re.search(r"Volume:\s*([0-9]*\.?[0-9]+)", out)
+    if m is not None:
+        return max(0, min(100, round(float(m.group(1)) * 100))), "[MUTED]" in out
+    m = re.search(r"/\s*(\d+)%",
+                  _run_out(["pactl", "get-sink-volume", "@DEFAULT_SINK@"]))
+    return (int(m.group(1)), False) if m is not None else (100, False)
+
+
+def set_audio_volume(pct: int) -> None:
+    pct = max(0, min(100, int(pct)))
+    if shutil.which("wpctl"):
+        _run_out(["wpctl", "set-volume", "@DEFAULT_AUDIO_SINK@", f"{pct / 100:.2f}"])
+    else:
+        _run_out(["pactl", "set-sink-volume", "@DEFAULT_SINK@", f"{pct}%"])
 
 
 class TaskButton(QPushButton):
@@ -159,6 +192,7 @@ class Bar(QWidget):
         row.setContentsMargins(10, 0, 10, 0)
         row.setSpacing(10)
         outer.addLayout(row)
+        self._outer = outer
 
         self.brand = QLabel("⬢ lynx")
         self.brand.setObjectName("brand")
@@ -189,6 +223,22 @@ class Bar(QWidget):
         row.addLayout(self.ws_row)
 
         row.addWidget(make_sep())
+
+        btn_h = max(20, min(32, self.bar_h - 22))
+        self.audio_btn = QPushButton()
+        self.audio_btn.setObjectName("audio")
+        self.audio_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.audio_btn.setFixedSize(38, btn_h)
+        self.audio_btn.setIcon(QIcon(svg_pixmap("Speaker.svg", 18,
+                                                bg=get_scheme()["surface"])))
+        self.audio_btn.setToolTip("Audio volume")
+        self.audio_btn.clicked.connect(self.toggle_audio_strip)
+        row.addWidget(self.audio_btn)
+
+        self._muted = False
+        self._last_pop = 0.0
+        self._build_audio_strip()
+        self.place_audio_strip(get_bar_side() != "bottom")
 
         clock_box = QVBoxLayout()
         clock_box.setContentsMargins(0, 0, 0, 0)
@@ -236,6 +286,129 @@ class Bar(QWidget):
 
     def schedule_refresh(self):
         self._debounce.start()
+
+    # ---- audio strip -----------------------------------------------------
+
+    def _build_audio_strip(self):
+        """White popover strip with the volume slider, docked to the bar."""
+        scheme = get_scheme()
+        self.audio_strip = QWidget()
+        self.audio_strip.setObjectName("audioStrip")
+        lay = QHBoxLayout(self.audio_strip)
+        lay.setContentsMargins(16, 8, 16, 10)
+        lay.setSpacing(12)
+        icon = QLabel()
+        icon.setPixmap(svg_pixmap("Speaker.svg", 18, tint="#3f3f52"))
+        self.vol_pct = QLabel("--")
+        self.vol_pct.setObjectName("volPct")
+        self.vol_pct.setAlignment(Qt.AlignmentFlag.AlignRight
+                                  | Qt.AlignmentFlag.AlignVCenter)
+        self.vol_pct.setMinimumWidth(52)
+        self.vol_slider = QSlider(Qt.Orientation.Horizontal)
+        self.vol_slider.setRange(0, 100)
+        self.vol_slider.setFixedWidth(260)
+        lay.addWidget(icon)
+        lay.addWidget(self.vol_slider, 1)
+        lay.addWidget(self.vol_pct)
+        self.audio_strip.setStyleSheet(f"""
+            #audioStrip {{
+                background: #ffffff;
+                border: 1px solid #dcdce6;
+                border-radius: 10px;
+            }}
+            #audioStrip QSlider {{
+                background: transparent;
+            }}
+            #audioStrip QSlider::groove:horizontal {{
+                height: 6px;
+                border-radius: 3px;
+                background: #e6e6ef;
+            }}
+            #audioStrip QSlider::sub-page:horizontal {{
+                height: 6px;
+                border-radius: 3px;
+                background: {scheme['accent']};
+            }}
+            #audioStrip QSlider::add-page:horizontal {{
+                height: 6px;
+                border-radius: 3px;
+                background: #e6e6ef;
+            }}
+            #audioStrip QSlider::handle:horizontal {{
+                width: 16px;
+                height: 16px;
+                margin: -6px 0;
+                border-radius: 8px;
+                background: #45445a;
+            }}
+            #audioStrip QSlider::handle:horizontal:hover {{
+                background: {scheme['accent']};
+            }}
+            #volPct {{
+                color: #26263a;
+                font-weight: 700;
+                font-size: 13px;
+                background: transparent;
+                border: none;
+            }}
+        """)
+        self.vol_slider.valueChanged.connect(self._on_volume_change)
+        self.audio_strip.hide()
+
+    def place_audio_strip(self, side_top: bool):
+        """Dock the strip below the bar row (top bar) or above it (bottom)."""
+        outer = self._outer
+        outer.removeWidget(self.audio_strip)
+        outer.insertWidget(0 if not side_top else outer.count(),
+                           self.audio_strip)
+
+    def toggle_audio_strip(self):
+        strip = self.audio_strip
+        if strip.isVisible():
+            strip.hide()
+        else:
+            self.sync_audio_strip()
+            strip.show()
+        self.apply_audio_size()
+
+    def sync_audio_strip(self):
+        vol, self._muted = audio_state()
+        self.vol_slider.blockSignals(True)
+        self.vol_slider.setValue(vol)
+        self.vol_slider.blockSignals(False)
+        self.vol_pct.setText("muted" if self._muted else f"{vol}%")
+
+    def apply_audio_size(self):
+        total = self.bar_h
+        if self.audio_strip.isVisible():
+            total += self.audio_strip.sizeHint().height()
+        self.setMinimumHeight(total)
+        self.setMaximumHeight(total)
+        self.resize(self.width(), total)
+
+    def _on_volume_change(self, val: int):
+        set_audio_volume(val)
+        self.vol_pct.setText("muted" if self._muted else f"{val}%")
+
+    def _on_volume_release(self):
+        self.pop_feedback(self._muted)
+
+    def pop_feedback(self, muted: bool = False):
+        """Play the UI pop sound when audio changes (throttled while dragging)."""
+        if muted:
+            return
+        now = time.monotonic()
+        if now - self._last_pop < 0.15:
+            return
+        self._last_pop = now
+        try:
+            from lynx_welcome import play_sound
+
+            if not play_sound():
+                print("lynx-taskbar: no player for pop sound "
+                      "(need mpg123/ffplay/mpv)", file=sys.stderr)
+        except Exception as e:
+            print(f"lynx-taskbar: pop sound failed: {e}", file=sys.stderr)
 
     def tick_clock(self):
         now = datetime.datetime.now()
@@ -318,8 +491,7 @@ def main() -> int:
         new_h = get_bar_height()
         if new_h != bar.bar_h:
             bar.bar_h = new_h
-            bar.setFixedHeight(new_h)
-            bar.resize(bar.width(), new_h)
+            bar.apply_audio_size()
             QTimer.singleShot(0, bar.refresh)
 
         bar.clock_opts = get_clock_opts()
@@ -327,6 +499,7 @@ def main() -> int:
 
         if want_top != side_top[0]:
             side_top[0] = want_top
+            bar.place_audio_strip(want_top)
             if not set_layershell_anchor_side(bar, side_top=want_top,
                                               zone=bar.bar_h):
                 print("lynx-taskbar: anchor flip failed (plain window?)",
