@@ -31,6 +31,23 @@ display protocols — all pure Python on Qt 6 (PySide6).
 
 ## Install
 
+### pacman (recommended)
+
+```sh
+# Add the lynxde repository
+sudo pacman -S wget
+wget -qO /tmp/lynx-de-keyring.pkg.tar.zst https://eotter-beep.github.io/lynxDE/x86_64/lynx-de-0.1.0-1-x86_64.pkg.tar.zst
+sudo pacman -U /tmp/lynx-de-keyring.pkg.tar.zst
+
+# Or add manually to /etc/pacman.conf:
+# [lynx-de]
+# Server = https://eotter-beep.github.io/lynxDE/x86_64
+
+sudo pacman -S lynx-de
+```
+
+### Manual install
+
 ```sh
 git clone https://github.com/eotter-beep/lynxDE.git
 cd lynxDE
@@ -41,13 +58,6 @@ The installer handles everything and starts the LWP desktop right away
 if you are already logged in.
 
 ### What the installer does
-
-1. Sets up a private venv with PySide6 if no system binding is found
-2. Vendors the `layer-shell-qt` runtime into `~/.local/share/lynxde`
-3. Installs launchers to `~/.local/bin`
-4. Registers display-manager sessions (Lynxde / LWP + Wayland / LWP + Wayland + X11)
-5. Wires autostart, keybinds and window rules into your Hyprland config (backup kept)
-6. Starts everything immediately if run inside a live session
 
 ## Components
 

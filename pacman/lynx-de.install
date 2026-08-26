@@ -1,0 +1,14 @@
+post_install() {
+    echo ""
+    echo "==> lynxde has been installed!"
+    echo ""
+    echo "  Select 'Lynxde' from your display manager to start."
+    echo ""
+    echo "  Keybinds:"
+    echo "    SUPER + X      Close window"
+    echo "    SUPER + O      Open settings"
+    echo "    SUPER + /      Command palette"
+    echo ""
+    echo "  Logs: ~/.cache/lynxde/taskbar.log"
+    echo ""
+}
