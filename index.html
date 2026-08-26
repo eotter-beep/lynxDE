@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>lynxde — a modern desktop environment you will love</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #181825;
+    --surface: #313244;
+    --surface-hi: #45475a;
+    --text: #cdd6f4;
+    --muted: #a6adc8;
+    --accent: #cba6f7;
+    --on-accent: #1e1e2e;
+    --red: #f38ba8;
+    --radius: 12px;
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  .container { max-width: 960px; margin: 0 auto; padding: 0 24px; }
+
+  /* Hero */
+  .hero {
+    text-align: center;
+    padding: 100px 24px 60px;
+    background: radial-gradient(ellipse at 50% 0%, rgba(203,166,247,0.08) 0%, transparent 60%);
+  }
+
+  .hero img {
+    width: 100%;
+    max-width: 720px;
+    border-radius: var(--radius);
+    margin-bottom: 40px;
+    border: 1px solid var(--surface-hi);
+  }
+
+  .hero h1 {
+    font-size: 3rem;
+    font-weight: 700;
+    margin-bottom: 12px;
+    letter-spacing: -0.02em;
+  }
+
+  .hero h1 span { color: var(--accent); }
+
+  .hero p {
+    font-size: 1.2rem;
+    color: var(--muted);
+    max-width: 560px;
+    margin: 0 auto 32px;
+  }
+
+  .btn {
+    display: inline-block;
+    padding: 12px 32px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 1rem;
+    transition: all 0.15s ease;
+    border: none;
+    cursor: pointer;
+  }
+
+  .btn-primary {
+    background: var(--accent);
+    color: var(--on-accent);
+  }
+
+  .btn-primary:hover {
+    opacity: 0.9;
+    text-decoration: none;
+  }
+
+  .btn-secondary {
+    background: var(--surface);
+    color: var(--text);
+    border: 1px solid var(--surface-hi);
+  }
+
+  .btn-secondary:hover {
+    background: var(--surface-hi);
+    text-decoration: none;
+  }
+
+  .btn-group {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  /* Sections */
+  section { padding: 80px 0; }
+
+  section h2 {
+    font-size: 2rem;
+    font-weight: 700;
+    text-align: center;
+    margin-bottom: 48px;
+    letter-spacing: -0.01em;
+  }
+
+  section h2 span { color: var(--accent); }
+
+  /* Screenshots */
+  .screenshots {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-bottom: 48px;
+  }
+
+  .screenshots img {
+    width: 100%;
+    border-radius: var(--radius);
+    border: 1px solid var(--surface-hi);
+  }
+
+  .screenshots figcaption {
+    text-align: center;
+    color: var(--muted);
+    font-size: 0.9rem;
+    margin-top: 8px;
+  }
+
+  /* Feature grid */
+  .features {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 16px;
+  }
+
+  .feature {
+    background: var(--surface);
+    border-radius: var(--radius);
+    padding: 28px;
+    border: 1px solid var(--surface-hi);
+  }
+
+  .feature h3 {
+    font-size: 1.05rem;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: var(--accent);
+  }
+
+  .feature p {
+    color: var(--muted);
+    font-size: 0.95rem;
+    line-height: 1.55;
+  }
+
+  /* How to use */
+  .guide {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+  }
+
+  .guide-step {
+    background: var(--surface);
+    border-radius: var(--radius);
+    padding: 24px;
+    border: 1px solid var(--surface-hi);
+  }
+
+  .guide-step .num {
+    display: inline-block;
+    width: 28px;
+    height: 28px;
+    line-height: 28px;
+    text-align: center;
+    border-radius: 50%;
+    background: var(--accent);
+    color: var(--on-accent);
+    font-weight: 700;
+    font-size: 0.85rem;
+    margin-bottom: 12px;
+  }
+
+  .guide-step h3 {
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 6px;
+  }
+
+  .guide-step p {
+    color: var(--muted);
+    font-size: 0.9rem;
+  }
+
+  .guide-step code {
+    display: inline-block;
+    background: var(--on-accent);
+    color: var(--accent);
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    margin-top: 6px;
+  }
+
+  /* Keybinds table */
+  .keybinds {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 32px;
+    background: var(--surface);
+    border-radius: var(--radius);
+    overflow: hidden;
+    border: 1px solid var(--surface-hi);
+  }
+
+  .keybinds th, .keybinds td {
+    padding: 14px 20px;
+    text-align: left;
+  }
+
+  .keybinds th {
+    background: var(--surface-hi);
+    font-weight: 600;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--muted);
+  }
+
+  .keybinds td {
+    border-top: 1px solid var(--surface-hi);
+    font-size: 0.95rem;
+  }
+
+  .keybinds kbd {
+    display: inline-block;
+    background: var(--on-accent);
+    color: var(--accent);
+    padding: 2px 10px;
+    border-radius: 4px;
+    font-family: inherit;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+
+  /* Install block */
+  .install-block {
+    background: var(--surface);
+    border: 1px solid var(--surface-hi);
+    border-radius: var(--radius);
+    padding: 28px 32px;
+    margin-top: 24px;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 0.9rem;
+    line-height: 1.8;
+    color: var(--muted);
+    overflow-x: auto;
+  }
+
+  .install-block .comment { color: var(--surface-hi); }
+  .install-block .cmd { color: var(--accent); }
+  .install-block .flag { color: var(--green, #a6e3a1); }
+
+  /* Footer */
+  footer {
+    text-align: center;
+    padding: 40px 24px;
+    color: var(--muted);
+    font-size: 0.85rem;
+    border-top: 1px solid var(--surface-hi);
+  }
+
+  footer a { color: var(--accent); }
+
+  /* Themes strip */
+  .themes {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    margin: 32px 0;
+    flex-wrap: wrap;
+  }
+
+  .swatch {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    border: 2px solid var(--surface-hi);
+  }
+
+  @media (max-width: 640px) {
+    .hero h1 { font-size: 2rem; }
+    .screenshots { grid-template-columns: 1fr; }
+    .guide { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <img src="docs/banner.png" alt="lynxde" width="720">
+  <h1>lynxde</h1>
+  <p>A modern desktop environment you will love. Built on its own compositor, designed for speed and safety.</p>
+  <div class="themes">
+    <div class="swatch" style="background: #cba6f7;" title="Lynx"></div>
+    <div class="swatch" style="background: #fab387;" title="Amber"></div>
+    <div class="swatch" style="background: #a6e3a1;" title="Forest"></div>
+    <div class="swatch" style="background: #74c7ec;" title="Ocean"></div>
+    <div class="swatch" style="background: #f38ba8;" title="Rose"></div>
+  </div>
+  <div class="btn-group">
+    <a href="https://github.com/eotter-beep/lynxDE" class="btn btn-primary">View on GitHub</a>
+    <a href="#install" class="btn btn-secondary">Install</a>
+  </div>
+</div>
+
+<section>
+  <div class="container">
+    <h2>What you get</h2>
+    <div class="screenshots">
+      <figure>
+        <img src="docs/screenshots/settings.png" alt="Settings">
+        <figcaption>Settings</figcaption>
+      </figure>
+      <figure>
+        <img src="docs/screenshots/store.png" alt="Lynx Store">
+        <figcaption>Lynx Store</figcaption>
+      </figure>
+      <figure>
+        <img src="docs/screenshots/launcher.png" alt="Launcher">
+        <figcaption>Launcher</figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="container">
+    <h2>Features</h2>
+    <div class="features">
+      <div class="feature">
+        <h3>Own Compositor</h3>
+        <p>LWP — the Lynx Window Protocol — handles tiling, input, and rendering natively. No Hyprland or Sway required.</p>
+      </div>
+      <div class="feature">
+        <h3>Pure Python</h3>
+        <p>Every component is Python + PySide6. No C extensions, no external dependencies. Readable and hackable.</p>
+      </div>
+      <div class="feature">
+        <h3>Live Settings</h3>
+        <p>Change color schemes, gaps, blur, wallpaper, widgets — everything applies instantly. No restart needed.</p>
+      </div>
+      <div class="feature">
+        <h3>Command Palette</h3>
+        <p>Press <kbd style="background:#1e1e2e;color:#cba6f7;padding:1px 6px;border-radius:3px;font-size:0.85rem">SUPER + /</kbd> to search apps, packages, and the web from one place.</p>
+      </div>
+      <div class="feature">
+        <h3>Built-in Store</h3>
+        <p>Browse, install, and remove pacman packages without leaving the desktop. Powered by Lynx Store.</p>
+      </div>
+      <div class="feature">
+        <h3>5 Color Themes</h3>
+        <p>Lynx, Amber, Forest, Ocean, and Rose — plus custom accent colors. Restyle the whole session in one click.</p>
+      </div>
+      <div class="feature">
+        <h3>Desktop Widgets</h3>
+        <p>Clock and OpenStreetMap tiles on the background layer. Configurable position and visibility.</p>
+      </div>
+      <div class="feature">
+        <h3>Auto Updates</h3>
+        <p>Checks GitHub every 24 hours, downloads and applies updates live. No re-login needed.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="guide">
+  <div class="container">
+    <h2>How to <span>use</span> it</h2>
+    <div class="guide">
+      <div class="guide-step">
+        <div class="num">1</div>
+        <h3>Start from your display manager</h3>
+        <p>After install, select <strong>Lynxde</strong> from SDDM, GDM, or LightDM. The native LWP compositor starts automatically.</p>
+      </div>
+      <div class="guide-step">
+        <div class="num">2</div>
+        <h3>Open the command palette</h3>
+        <p>Press <code>SUPER + /</code> to search apps, packages, and the web. Type anything — it searches everything.</p>
+      </div>
+      <div class="guide-step">
+        <div class="num">3</div>
+        <h3>Customize in settings</h3>
+        <p>Press <code>SUPER + O</code> to open Settings. Change the theme, wallpaper, gaps, blur, widgets — all live.</p>
+      </div>
+      <div class="guide-step">
+        <div class="num">4</div>
+        <h3>Install apps from the store</h3>
+        <p>Type a package name in the palette or run <code>lynx-store</code> to browse, install, and update pacman packages.</p>
+      </div>
+    </div>
+
+    <table class="keybinds">
+      <thead>
+        <tr><th>Keybind</th><th>Action</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><kbd>SUPER</kbd> + <kbd>/</kbd></td><td>Open command palette</td></tr>
+        <tr><td><kbd>SUPER</kbd> + <kbd>O</kbd></td><td>Open settings</td></tr>
+        <tr><td><kbd>SUPER</kbd> + <kbd>X</kbd></td><td>Close focused window</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section id="install">
+  <div class="container">
+    <h2>Install</h2>
+
+    <h3 style="font-size:1.1rem; margin-bottom:8px;">pacman</h3>
+    <div class="install-block">
+      <span class="comment"># Add the lynxde repository</span><br>
+      <span class="cmd">sudo pacman -S wget</span><br>
+      <span class="cmd">wget</span> -qO /tmp/lynx-de.pkg.tar.zst <span class="flag">https://eotter-beep.github.io/lynxDE/x86_64/lynx-de-0.1.0-1-x86_64.pkg.tar.zst</span><br>
+      <span class="cmd">sudo pacman -U</span> /tmp/lynx-de.pkg.tar.zst<br>
+      <br>
+      <span class="comment"># Or add manually to /etc/pacman.conf:</span><br>
+      <span class="comment"># [lynx-de]</span><br>
+      <span class="comment"># Server = https://eotter-beep.github.io/lynxDE/x86_64</span><br>
+      <br>
+      <span class="cmd">sudo pacman -S lynx-de</span>
+    </div>
+
+    <h3 style="font-size:1.1rem; margin-top:32px; margin-bottom:8px;">Manual</h3>
+    <div class="install-block">
+      <span class="cmd">git clone</span> https://github.com/eotter-beep/lynxDE.git<br>
+      <span class="cmd">cd</span> lynxDE<br>
+      <span class="cmd">./install.sh</span>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <p>Released under the <a href="https://github.com/eotter-beep/lynxDE/blob/main/LICENSE">MIT License</a>. Built with Python + PySide6 on Arch Linux.</p>
+</footer>
+
+</body>
+</html>
